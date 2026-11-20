@@ -20,12 +20,14 @@ public final class CsvDatabase implements Database {
 
     private final Path root;
     private final String schemaFile;
+    private final String documentsFolder;
     private final InMemoryDatabase memory = new InMemoryDatabase();
     private final Map<String, CsvCollection> collections = new HashMap<>();
 
     public CsvDatabase(Config config) {
         this.root = Path.of(config.getBaseDirectory());
         this.schemaFile = config.getSchemaFile();
+        this.documentsFolder = config.getDocumentsFolder();
         try {
             Files.createDirectories(root);
         } catch (IOException e) {
@@ -44,7 +46,7 @@ public final class CsvDatabase implements Database {
             throw new StorageException("cannot create " + directory + ": " + e.getMessage());
         }
         CsvFiles.writeSchema(directory.resolve(schemaFile), schema);
-        CsvCollection collection = new CsvCollection(inner, directory);
+        CsvCollection collection = new CsvCollection(inner, directory, documentsFolder);
         collections.put(name, collection);
         return collection;
     }
@@ -82,11 +84,28 @@ public final class CsvDatabase implements Database {
                     String name = folder.getFileName().toString();
                     Schema schema = CsvFiles.readSchema(schemaFilePath);
                     Collection inner = memory.createCollection(name, schema);
-                    collections.put(name, new CsvCollection(inner, folder));
+                    loadDocuments(folder, inner, schema);
+                    collections.put(name, new CsvCollection(inner, folder, documentsFolder));
                 }
             }
         } catch (IOException e) {
             throw new StorageException("cannot read " + root + ": " + e.getMessage());
+        }
+    }
+
+    private void loadDocuments(Path folder, Collection inner, Schema schema) {
+        Path documents = folder.resolve(documentsFolder);
+        if (!Files.isDirectory(documents)) {
+            return;
+        }
+        try (Stream<Path> files = Files.list(documents)) {
+            for (Path file : files.sorted().toList()) {
+                String fileName = file.getFileName().toString();
+                String key = fileName.substring(0, fileName.length() - ".csv".length());
+                inner.insert(key, CsvFiles.readDocument(file, schema));
+            }
+        } catch (IOException e) {
+            throw new StorageException("cannot read " + documents + ": " + e.getMessage());
         }
     }
 

@@ -11,6 +11,7 @@ final class CsvCollection implements Collection {
 
     private final Collection delegate;
     private final Path directory;
+    private final String documentsFolder;
 
     @Override
     public String getName() {
@@ -25,6 +26,7 @@ final class CsvCollection implements Collection {
     @Override
     public void insert(String key, Map<String, Object> document) {
         delegate.insert(key, document);
+        saveDocument(key);
     }
 
     @Override
@@ -35,11 +37,13 @@ final class CsvCollection implements Collection {
     @Override
     public void update(String key, Map<String, Object> changes) {
         delegate.update(key, changes);
+        saveDocument(key);
     }
 
     @Override
     public void delete(String key) {
         delegate.delete(key);
+        CsvFiles.deleteFile(documentFile(key));
     }
 
     @Override
@@ -50,5 +54,14 @@ final class CsvCollection implements Collection {
     @Override
     public void createIndex(String field) {
         delegate.createIndex(field);
+    }
+
+    Path documentFile(String key) {
+        return directory.resolve(documentsFolder).resolve(key + ".csv");
+    }
+
+    private void saveDocument(String key) {
+        CsvFiles.ensureDirectory(directory.resolve(documentsFolder));
+        CsvFiles.writeDocument(documentFile(key), getSchema(), delegate.find(key));
     }
 }

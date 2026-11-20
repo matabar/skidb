@@ -15,4 +15,7 @@ public final class Config {
 
     @JsonProperty("schema-file")
     private String schemaFile;
+
+    @JsonProperty("documents-folder")
+    private String documentsFolder;
 }

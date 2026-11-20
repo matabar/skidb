@@ -29,6 +29,7 @@ public final class ConfigLoader {
         }
         requireSetting(config.getBaseDirectory(), "base-directory", file);
         requireSetting(config.getSchemaFile(), "schema-file", file);
+        requireSetting(config.getDocumentsFolder(), "documents-folder", file);
         return config;
     }
 
