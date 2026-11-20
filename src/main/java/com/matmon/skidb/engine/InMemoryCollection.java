@@ -43,4 +43,12 @@ final class InMemoryCollection implements Collection {
         SchemaValidator.validateDocument(schema, merged);
         documents.put(key, Map.copyOf(merged));
     }
+
+    @Override
+    public void delete(String key) {
+        if (!documents.containsKey(key)) {
+            throw new KeyNotFoundException("key not found: " + key);
+        }
+        documents.remove(key);
+    }
 }

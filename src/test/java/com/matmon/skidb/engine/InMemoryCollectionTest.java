@@ -99,4 +99,18 @@ class InMemoryCollectionTest {
 
         assertEquals("Noa", students.find("1").get("firstName"));
     }
+
+    @Test
+    void deleteRemovesDocument() {
+        students.insert("1", Map.of("firstName", "Noa", "lastName", "Cohen"));
+
+        students.delete("1");
+
+        assertThrows(KeyNotFoundException.class, () -> students.find("1"));
+    }
+
+    @Test
+    void deleteMissingKeyThrows() {
+        assertThrows(KeyNotFoundException.class, () -> students.delete("missing"));
+    }
 }

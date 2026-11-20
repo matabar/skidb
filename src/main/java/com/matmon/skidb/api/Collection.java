@@ -14,4 +14,6 @@ public interface Collection {
     Map<String, Object> find(String key);
 
     void update(String key, Map<String, Object> changes);
+
+    void delete(String key);
 }
