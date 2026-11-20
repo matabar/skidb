@@ -34,8 +34,13 @@ final class SchemaValidator {
         if (fieldValue == null) {
             throw new SchemaViolationException("null value for field: " + field);
         }
-        if (type == FieldType.STRING && !(fieldValue instanceof String)) {
-            throw new SchemaViolationException("field " + field + " must be a string");
+        boolean matches = switch (type) {
+            case STRING -> fieldValue instanceof String;
+            case BOOLEAN -> fieldValue instanceof Boolean;
+            case INTEGER -> fieldValue instanceof Integer;
+        };
+        if (!matches) {
+            throw new SchemaViolationException("field " + field + " must be of type " + type);
         }
     }
 }
