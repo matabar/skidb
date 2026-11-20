@@ -18,4 +18,6 @@ public interface Collection {
     void delete(String key);
 
     Map<String, Map<String, Object>> query(Map<String, Object> query);
+
+    void createIndex(String field);
 }

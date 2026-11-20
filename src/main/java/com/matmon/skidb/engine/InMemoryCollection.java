@@ -3,9 +3,12 @@ package com.matmon.skidb.engine;
 import com.matmon.skidb.api.Collection;
 import com.matmon.skidb.exception.DuplicateKeyException;
 import com.matmon.skidb.exception.KeyNotFoundException;
+import com.matmon.skidb.exception.UnknownFieldException;
 import com.matmon.skidb.model.Schema;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -17,6 +20,7 @@ final class InMemoryCollection implements Collection {
     @Getter
     private final Schema schema;
     private final Map<String, Map<String, Object>> documents = new HashMap<>();
+    private final Map<String, Map<Object, Set<String>>> indexes = new HashMap<>();
 
     @Override
     public void insert(String key, Map<String, Object> document) {
@@ -24,7 +28,9 @@ final class InMemoryCollection implements Collection {
             throw new DuplicateKeyException("duplicate key: " + key);
         }
         SchemaValidator.validateDocument(schema, document);
-        documents.put(key, Map.copyOf(document));
+        Map<String, Object> stored = Map.copyOf(document);
+        documents.put(key, stored);
+        addToIndex(key, stored);
     }
 
     @Override
@@ -38,10 +44,14 @@ final class InMemoryCollection implements Collection {
 
     @Override
     public void update(String key, Map<String, Object> changes) {
-        Map<String, Object> merged = new HashMap<>(find(key));
+        Map<String, Object> existing = find(key);
+        Map<String, Object> merged = new HashMap<>(existing);
         merged.putAll(changes);
         SchemaValidator.validateDocument(schema, merged);
-        documents.put(key, Map.copyOf(merged));
+        Map<String, Object> stored = Map.copyOf(merged);
+        removeFromIndex(key, existing);
+        documents.put(key, stored);
+        addToIndex(key, stored);
     }
 
     @Override
@@ -49,19 +59,67 @@ final class InMemoryCollection implements Collection {
         if (!documents.containsKey(key)) {
             throw new KeyNotFoundException("key not found: " + key);
         }
-        documents.remove(key);
+        removeFromIndex(key, documents.remove(key));
     }
 
     @Override
     public Map<String, Map<String, Object>> query(Map<String, Object> query) {
         SchemaValidator.validateQuery(schema, query);
         Map<String, Map<String, Object>> matches = new HashMap<>();
-        for (Map.Entry<String, Map<String, Object>> entry : documents.entrySet()) {
-            if (matchesQuery(entry.getValue(), query)) {
-                matches.put(entry.getKey(), entry.getValue());
+        for (String key : keysToCheck(query)) {
+            Map<String, Object> document = documents.get(key);
+            if (matchesQuery(document, query)) {
+                matches.put(key, document);
             }
         }
         return Map.copyOf(matches);
+    }
+
+    @Override
+    public void createIndex(String field) {
+        if (!schema.getFieldTypes().containsKey(field)) {
+            throw new UnknownFieldException("unknown field: " + field);
+        }
+        if (indexes.containsKey(field)) {
+            return;
+        }
+        Map<Object, Set<String>> index = new HashMap<>();
+        indexes.put(field, index);
+        for (Map.Entry<String, Map<String, Object>> entry : documents.entrySet()) {
+            index.computeIfAbsent(entry.getValue().get(field), value -> new HashSet<>())
+                    .add(entry.getKey());
+        }
+    }
+
+    private Set<String> keysToCheck(Map<String, Object> query) {
+        for (Map.Entry<String, Object> entry : query.entrySet()) {
+            Map<Object, Set<String>> index = indexes.get(entry.getKey());
+            if (index != null) {
+                return index.getOrDefault(entry.getValue(), Set.of());
+            }
+        }
+        return documents.keySet();
+    }
+
+    private void addToIndex(String key, Map<String, Object> document) {
+        for (Map.Entry<String, Map<Object, Set<String>>> index : indexes.entrySet()) {
+            index.getValue()
+                    .computeIfAbsent(document.get(index.getKey()), value -> new HashSet<>())
+                    .add(key);
+        }
+    }
+
+    private void removeFromIndex(String key, Map<String, Object> document) {
+        for (Map.Entry<String, Map<Object, Set<String>>> index : indexes.entrySet()) {
+            Object value = document.get(index.getKey());
+            Set<String> keys = index.getValue().get(value);
+            if (keys != null) {
+                keys.remove(key);
+                if (keys.isEmpty()) {
+                    index.getValue().remove(value);
+                }
+            }
+        }
     }
 
     private static boolean matchesQuery(Map<String, Object> document, Map<String, Object> query) {
