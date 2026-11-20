@@ -1,0 +1,10 @@
+target/
+
+### IntelliJ IDEA ###
+# Ignore IDE state, but keep the project-wide settings that should be shared
+.idea/*
+!.idea/vcs.xml
+!.idea/.gitignore
+
+### Mac OS ###
+.DS_Store
