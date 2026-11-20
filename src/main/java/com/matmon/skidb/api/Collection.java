@@ -16,4 +16,6 @@ public interface Collection {
     void update(String key, Map<String, Object> changes);
 
     void delete(String key);
+
+    Map<String, Map<String, Object>> query(Map<String, Object> query);
 }

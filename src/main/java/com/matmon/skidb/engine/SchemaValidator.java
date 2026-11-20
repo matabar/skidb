@@ -20,6 +20,10 @@ final class SchemaValidator {
         checkValues(schema, document);
     }
 
+    static void validateQuery(Schema schema, Map<String, Object> query) {
+        checkValues(schema, query);
+    }
+
     private static void checkValues(Schema schema, Map<String, Object> values) {
         for (Map.Entry<String, Object> entry : values.entrySet()) {
             FieldType type = schema.getFieldTypes().get(entry.getKey());

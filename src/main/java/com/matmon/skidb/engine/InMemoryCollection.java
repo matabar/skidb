@@ -29,11 +29,11 @@ final class InMemoryCollection implements Collection {
 
     @Override
     public Map<String, Object> find(String key) {
-        Map<String, Object> stored = documents.get(key);
-        if (stored == null) {
+        Map<String, Object> document = documents.get(key);
+        if (document == null) {
             throw new KeyNotFoundException("key not found: " + key);
         }
-        return stored;
+        return document;
     }
 
     @Override
@@ -50,5 +50,22 @@ final class InMemoryCollection implements Collection {
             throw new KeyNotFoundException("key not found: " + key);
         }
         documents.remove(key);
+    }
+
+    @Override
+    public Map<String, Map<String, Object>> query(Map<String, Object> query) {
+        SchemaValidator.validateQuery(schema, query);
+        Map<String, Map<String, Object>> matches = new HashMap<>();
+        for (Map.Entry<String, Map<String, Object>> entry : documents.entrySet()) {
+            if (matchesQuery(entry.getValue(), query)) {
+                matches.put(entry.getKey(), entry.getValue());
+            }
+        }
+        return Map.copyOf(matches);
+    }
+
+    private static boolean matchesQuery(Map<String, Object> document, Map<String, Object> query) {
+        return query.entrySet().stream()
+                .allMatch(entry -> entry.getValue().equals(document.get(entry.getKey())));
     }
 }
