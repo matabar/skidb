@@ -1,1 +1,2 @@
 base-directory: data
+schema-file: schema.csv

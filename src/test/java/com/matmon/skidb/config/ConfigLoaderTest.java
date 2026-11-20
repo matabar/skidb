@@ -11,14 +11,20 @@ import org.junit.jupiter.api.io.TempDir;
 
 class ConfigLoaderTest {
 
+    private static final String ALL_SETTINGS = """
+            base-directory: data
+            schema-file: schema.csv
+            """;
+
     @TempDir
     Path tempDir;
 
     @Test
-    void loadsBaseDirectory() throws Exception {
-        Path file = write("base-directory: data\n");
+    void loadsAllSettings() throws Exception {
+        Config config = ConfigLoader.load(write(ALL_SETTINGS));
 
-        assertEquals("data", ConfigLoader.load(file).getBaseDirectory());
+        assertEquals("data", config.getBaseDirectory());
+        assertEquals("schema.csv", config.getSchemaFile());
     }
 
     @Test
@@ -27,15 +33,15 @@ class ConfigLoaderTest {
     }
 
     @Test
-    void missingBaseDirectoryThrows() throws Exception {
+    void missingSettingThrows() throws Exception {
         Path file = write("{}\n");
 
         assertThrows(ConfigException.class, () -> ConfigLoader.load(file));
     }
 
     @Test
-    void blankBaseDirectoryThrows() throws Exception {
-        Path file = write("base-directory: \"\"\n");
+    void blankSettingThrows() throws Exception {
+        Path file = write(ALL_SETTINGS.replace("schema-file: schema.csv", "schema-file: \"\""));
 
         assertThrows(ConfigException.class, () -> ConfigLoader.load(file));
     }

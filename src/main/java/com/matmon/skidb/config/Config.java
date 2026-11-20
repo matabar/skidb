@@ -12,4 +12,7 @@ public final class Config {
 
     @JsonProperty("base-directory")
     private String baseDirectory;
+
+    @JsonProperty("schema-file")
+    private String schemaFile;
 }

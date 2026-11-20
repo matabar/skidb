@@ -24,9 +24,17 @@ public final class ConfigLoader {
         } catch (IOException e) {
             throw new ConfigException("cannot read config file " + file + ": " + e.getMessage());
         }
-        if (config == null || config.getBaseDirectory() == null || config.getBaseDirectory().isBlank()) {
-            throw new ConfigException("base-directory must be set in " + file);
+        if (config == null) {
+            throw new ConfigException("settings must be set in " + file);
         }
+        requireSetting(config.getBaseDirectory(), "base-directory", file);
+        requireSetting(config.getSchemaFile(), "schema-file", file);
         return config;
+    }
+
+    private static void requireSetting(String value, String key, Path file) {
+        if (value == null || value.isBlank()) {
+            throw new ConfigException(key + " must be set in " + file);
+        }
     }
 }
