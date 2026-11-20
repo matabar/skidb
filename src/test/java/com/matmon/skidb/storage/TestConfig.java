@@ -13,6 +13,7 @@ final class TestConfig {
         config.setBaseDirectory(baseDirectory.toString());
         config.setSchemaFile("schema.csv");
         config.setDocumentsFolder("records");
+        config.setIndexesFolder("indexes");
         return config;
     }
 }

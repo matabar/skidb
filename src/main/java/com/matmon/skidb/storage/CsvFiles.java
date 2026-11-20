@@ -26,20 +26,15 @@ final class CsvFiles {
     private static final CsvMapper CSV = new CsvMapper();
 
     static void writeSchema(Path file, Schema schema) {
-        CsvSchema csvSchema = CsvSchema.builder()
-                .addColumn("field")
-                .addColumn("type")
-                .build()
-                .withHeader();
         List<Map<String, String>> rows = new ArrayList<>();
         for (Map.Entry<String, FieldType> entry : new TreeMap<>(schema.getFieldTypes()).entrySet()) {
             rows.add(Map.of("field", entry.getKey(), "type", entry.getValue().name()));
         }
-        try (SequenceWriter writer = CSV.writer(csvSchema).writeValues(file.toFile())) {
-            writer.writeAll(rows);
-        } catch (IOException e) {
-            throw new StorageException("cannot write " + file + ": " + e.getMessage());
-        }
+        writeRows(file, List.of("field", "type"), rows);
+    }
+
+    static void writeIndex(Path file, List<Map<String, String>> rows) {
+        writeRows(file, List.of("value", "key"), rows);
     }
 
     static Schema readSchema(Path file) {
@@ -88,6 +83,17 @@ final class CsvFiles {
             Files.deleteIfExists(file);
         } catch (IOException e) {
             throw new StorageException("cannot delete " + file + ": " + e.getMessage());
+        }
+    }
+
+    private static void writeRows(Path file, List<String> columns, List<Map<String, String>> rows) {
+        CsvSchema.Builder builder = CsvSchema.builder();
+        columns.forEach(builder::addColumn);
+        CsvSchema csvSchema = builder.build().withHeader();
+        try (SequenceWriter writer = CSV.writer(csvSchema).writeValues(file.toFile())) {
+            writer.writeAll(rows);
+        } catch (IOException e) {
+            throw new StorageException("cannot write " + file + ": " + e.getMessage());
         }
     }
 

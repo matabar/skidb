@@ -12,6 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -21,6 +22,7 @@ public final class CsvDatabase implements Database {
     private final Path root;
     private final String schemaFile;
     private final String documentsFolder;
+    private final String indexesFolder;
     private final InMemoryDatabase memory = new InMemoryDatabase();
     private final Map<String, CsvCollection> collections = new HashMap<>();
 
@@ -28,6 +30,7 @@ public final class CsvDatabase implements Database {
         this.root = Path.of(config.getBaseDirectory());
         this.schemaFile = config.getSchemaFile();
         this.documentsFolder = config.getDocumentsFolder();
+        this.indexesFolder = config.getIndexesFolder();
         try {
             Files.createDirectories(root);
         } catch (IOException e) {
@@ -46,7 +49,7 @@ public final class CsvDatabase implements Database {
             throw new StorageException("cannot create " + directory + ": " + e.getMessage());
         }
         CsvFiles.writeSchema(directory.resolve(schemaFile), schema);
-        CsvCollection collection = new CsvCollection(inner, directory, documentsFolder);
+        CsvCollection collection = new CsvCollection(inner, directory, documentsFolder, indexesFolder, new HashSet<>());
         collections.put(name, collection);
         return collection;
     }
@@ -85,12 +88,32 @@ public final class CsvDatabase implements Database {
                     Schema schema = CsvFiles.readSchema(schemaFilePath);
                     Collection inner = memory.createCollection(name, schema);
                     loadDocuments(folder, inner, schema);
-                    collections.put(name, new CsvCollection(inner, folder, documentsFolder));
+                    Set<String> indexedFields = loadIndexes(folder, inner);
+                    collections.put(name, new CsvCollection(inner, folder, documentsFolder, indexesFolder, indexedFields));
                 }
             }
         } catch (IOException e) {
             throw new StorageException("cannot read " + root + ": " + e.getMessage());
         }
+    }
+
+    private Set<String> loadIndexes(Path folder, Collection inner) {
+        Set<String> indexedFields = new HashSet<>();
+        Path indexes = folder.resolve(indexesFolder);
+        if (!Files.isDirectory(indexes)) {
+            return indexedFields;
+        }
+        try (Stream<Path> files = Files.list(indexes)) {
+            for (Path file : files.sorted().toList()) {
+                String fileName = file.getFileName().toString();
+                String field = fileName.substring(0, fileName.length() - ".csv".length());
+                inner.createIndex(field);
+                indexedFields.add(field);
+            }
+        } catch (IOException e) {
+            throw new StorageException("cannot read " + indexes + ": " + e.getMessage());
+        }
+        return indexedFields;
     }
 
     private void loadDocuments(Path folder, Collection inner, Schema schema) {

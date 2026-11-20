@@ -18,4 +18,7 @@ public final class Config {
 
     @JsonProperty("documents-folder")
     private String documentsFolder;
+
+    @JsonProperty("indexes-folder")
+    private String indexesFolder;
 }

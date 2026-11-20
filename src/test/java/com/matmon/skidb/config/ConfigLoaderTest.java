@@ -15,6 +15,7 @@ class ConfigLoaderTest {
             base-directory: data
             schema-file: schema.csv
             documents-folder: records
+            indexes-folder: indexes
             """;
 
     @TempDir
@@ -27,6 +28,7 @@ class ConfigLoaderTest {
         assertEquals("data", config.getBaseDirectory());
         assertEquals("schema.csv", config.getSchemaFile());
         assertEquals("records", config.getDocumentsFolder());
+        assertEquals("indexes", config.getIndexesFolder());
     }
 
     @Test
@@ -43,7 +45,7 @@ class ConfigLoaderTest {
 
     @Test
     void blankSettingThrows() throws Exception {
-        Path file = write(ALL_SETTINGS.replace("documents-folder: records", "documents-folder: \"\""));
+        Path file = write(ALL_SETTINGS.replace("indexes-folder: indexes", "indexes-folder: \"\""));
 
         assertThrows(ConfigException.class, () -> ConfigLoader.load(file));
     }

@@ -1,3 +1,4 @@
 base-directory: data
 schema-file: schema.csv
 documents-folder: records
+indexes-folder: indexes
