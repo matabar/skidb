@@ -57,4 +57,46 @@ class InMemoryCollectionTest {
     void findMissingKeyThrows() {
         assertThrows(KeyNotFoundException.class, () -> students.find("missing"));
     }
+
+    @Test
+    void updateChangesOnlyTheSentField() {
+        students.insert("1", Map.of("firstName", "Noa", "lastName", "Cohen"));
+
+        students.update("1", Map.of("firstName", "Tamar"));
+
+        assertEquals("Tamar", students.find("1").get("firstName"));
+        assertEquals("Cohen", students.find("1").get("lastName"));
+    }
+
+    @Test
+    void updateRejectsUnknownField() {
+        students.insert("1", Map.of("firstName", "Noa", "lastName", "Cohen"));
+
+        assertThrows(UnknownFieldException.class,
+                () -> students.update("1", Map.of("nickname", "Nuni")));
+    }
+
+    @Test
+    void updateRejectsNonStringValue() {
+        students.insert("1", Map.of("firstName", "Noa", "lastName", "Cohen"));
+
+        assertThrows(SchemaViolationException.class,
+                () -> students.update("1", Map.of("firstName", 36)));
+    }
+
+    @Test
+    void updateMissingKeyThrows() {
+        assertThrows(KeyNotFoundException.class,
+                () -> students.update("missing", Map.of("firstName", "Noa")));
+    }
+
+    @Test
+    void failedUpdateLeavesDocumentUnchanged() {
+        students.insert("1", Map.of("firstName", "Noa", "lastName", "Cohen"));
+
+        assertThrows(SchemaViolationException.class,
+                () -> students.update("1", Map.of("firstName", 36)));
+
+        assertEquals("Noa", students.find("1").get("firstName"));
+    }
 }

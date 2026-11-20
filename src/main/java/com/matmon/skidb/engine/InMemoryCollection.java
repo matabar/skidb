@@ -35,4 +35,12 @@ final class InMemoryCollection implements Collection {
         }
         return stored;
     }
+
+    @Override
+    public void update(String key, Map<String, Object> changes) {
+        Map<String, Object> merged = new HashMap<>(find(key));
+        merged.putAll(changes);
+        SchemaValidator.validateDocument(schema, merged);
+        documents.put(key, Map.copyOf(merged));
+    }
 }

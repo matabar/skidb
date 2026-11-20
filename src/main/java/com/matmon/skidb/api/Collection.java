@@ -12,4 +12,6 @@ public interface Collection {
     void insert(String key, Map<String, Object> document);
 
     Map<String, Object> find(String key);
+
+    void update(String key, Map<String, Object> changes);
 }
